@@ -1,0 +1,12 @@
+# Node.js
+node_modules/
+dist/
+
+# Vite cache
+.vite/
+
+# 環境変数
+.env*
+
+# エディタ設定
+.vscode/
