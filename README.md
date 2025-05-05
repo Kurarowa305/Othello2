@@ -10,10 +10,8 @@
 
 ## 実行
 
-'''bash
-    npm install
-    npm run dev
-'''
+`npm install`
+`npm run dev`
 
 ## ファイル構成
 
