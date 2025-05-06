@@ -1,7 +1,7 @@
 enum StoneColor {
-  Black,
-  White,
-  None,
+  BLACK,
+  WHITE,
+  EMPTY,
 }
 
 export default StoneColor;
