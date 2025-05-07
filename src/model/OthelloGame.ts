@@ -77,20 +77,15 @@ export class OthelloGame {
     // 石を置いて反転
     this.board.applyMove(row, col, this.currentPlayer);
     this.consecutivePass = 0; // パス連続をリセット
-    this.notifyBoardUpdated();
-
+    
     // 手番交代 & 継続
     this.switchPlayer();
+    this.notifyBoardUpdated();
   }
 
-  /** 観測者を登録 (notifyNow=true で直後に最新状態を送信) */
-  public addObserver(obs: IGameObserver, notifyNow = false): void {
+  /** 観測者を登録 */
+  public addObserver(obs: IGameObserver): void {
     this.observers.add(obs);
-    if (notifyNow) {
-      obs.onBoardUpdated(this.board.clone());
-      obs.onTurnChanged(this.currentPlayer);
-      if (this.isGameOver) obs.onGameEnded(this.board.clone());
-    }
   }
 
   /** 盤上の石数を返す (View 用ユーティリティ) */
@@ -132,12 +127,17 @@ export class OthelloGame {
     this.advanceIfCpuTurn();
   }
 
-  /** CPU の手番なら自動的に手を選び実行 (同期処理) */
-  private advanceIfCpuTurn(): void {
-    if (this.isGameOver) return;
+  /** CPU の手番なら自動的に手を選び実行 (1 秒ディレイ付き) */
+private advanceIfCpuTurn(): void {
+  if (this.isGameOver) return;
 
-    const player = this.players[this.currentPlayer];
-    if (!(player instanceof CpuPlayer)) return;
+  const player = this.players[this.currentPlayer];
+  if (!(player instanceof CpuPlayer)) return;
+
+  /* ---------- ここで 1 秒待機 ---------- */
+  setTimeout(() => {
+    // 途中でゲームが終了していないか再チェック
+    if (this.isGameOver) return;
 
     const move = player.chooseMove(this.board.clone());
     if (move) {
@@ -151,7 +151,8 @@ export class OthelloGame {
         this.switchPlayer();
       }
     }
-  }
+  }, 1000); 
+}
 
   /** 終局処理 */
   private endGame(): void {
