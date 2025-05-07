@@ -1,7 +1,14 @@
-enum StoneColor {
-  BLACK,
-  WHITE,
-  EMPTY,
-}
+/* --------------------------------------------------
+ * /src/types/StoneColor.ts
+ * --------------------------------------------------
+ * オセロの石色を表す列挙型
+ *  - BLACK : 先手
+ *  - WHITE : 後手
+ *  - EMPTY : 石なし
+ * -------------------------------------------------- */
 
-export default StoneColor;
+export enum StoneColor {
+  BLACK,  // 0
+  WHITE,  // 1
+  EMPTY,  // 2
+}
