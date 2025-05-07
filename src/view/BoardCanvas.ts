@@ -50,7 +50,7 @@ export class BoardCanvas {
         const cell = this.cells[r][c];
         cell.classList.remove("black", "white", "empty");
 
-        const color: StoneColor = board.getCell[r][c];
+        const color: StoneColor = board.getCell(r, c);
         switch (color) {
           case StoneColor.BLACK:
             cell.classList.add("black");
