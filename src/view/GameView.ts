@@ -30,8 +30,8 @@ export class GameView implements IGameObserver {
     this.root.appendChild(this.boardCanvas.element);
     this.root.appendChild(this.endDialog.element);
 
-    // Observer登録 & 初期描画
-    this.game.addObserver(this, /* notifyNow = */ true);
+    // Observer登録
+    this.game.addObserver(this);
   }
 
   private handleCellClick = (row: number, col: number): void => {
