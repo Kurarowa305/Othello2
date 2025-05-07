@@ -76,11 +76,9 @@ export class OthelloGame {
 
     // 石を置いて反転
     this.board.applyMove(row, col, this.currentPlayer);
-    this.consecutivePass = 0; // パス連続をリセット
     
     // 手番交代 & 継続
     this.switchPlayer();
-    this.notifyBoardUpdated();
   }
 
   /** 観測者を登録 */
@@ -102,58 +100,68 @@ export class OthelloGame {
   }
 
   /* ==============================  内部ロジック  ============================== */
-
-  /** 手番を切り替える。必要ならパス／終局処理も行う */
-  private switchPlayer(): void {
+  private async switchPlayer(): Promise<void> {
     this.currentPlayer = this.opposite(this.currentPlayer);
 
+    /* ---------- 空きセルがあるかチェック ---------- */
+    const { black, white } = this.countStones();              
+    const totalStones = black + white;
+    if (totalStones >= Board.SIZE * Board.SIZE) {             
+      this.endGame();                                          
+      return;
+    }
+
+    /* ---------- 合法手チェック & パス処理 ---------- */
     const valid = this.getAllValidPlaces();
     if (valid.length === 0) {
-      // パス
+      // パス処理
       this.consecutivePass++;
-
       if (this.consecutivePass >= 2) {
         this.endGame();
         return;
       }
-
-      // 相手に回して継続
-      this.notifyTurnChanged();
-      this.switchPlayer(); // 再帰的に手番を戻す
+      console.log(this.consecutivePass);
+      await this.switchPlayer();
       return;
     }
-
+    this.consecutivePass = 0;
+  
+    // UI更新
     this.notifyTurnChanged();
-    this.advanceIfCpuTurn();
+    this.notifyBoardUpdated();
+
+    await this.advanceIfCpuTurn();
   }
+  
 
-  /** CPU の手番なら自動的に手を選び実行 (1 秒ディレイ付き) */
-private advanceIfCpuTurn(): void {
+/** CPU の手番なら自動的に手を選び実行 */
+private async advanceIfCpuTurn(): Promise<void> {
   if (this.isGameOver) return;
-
   const player = this.players[this.currentPlayer];
   if (!(player instanceof CpuPlayer)) return;
 
-  /* ---------- ここで 1 秒待機 ---------- */
-  setTimeout(() => {
-    // 途中でゲームが終了していないか再チェック
-    if (this.isGameOver) return;
+  await this.delay(1000);   
 
-    const move = player.chooseMove(this.board.clone());
-    if (move) {
-      this.putStone(move.row, move.col); // 手を指すと turn 交代まで再帰処理
-    } else {
-      // 合法手ゼロ → パス扱い
-      this.consecutivePass++;
-      if (this.consecutivePass >= 2) {
-        this.endGame();
-      } else {
-        this.switchPlayer();
-      }
+  if (this.isGameOver) {  
+    return;
+  }
+
+  /* ---------- 合法手チェック & パス処理 ---------- */
+  const move = player.chooseMove(this.board.clone());
+  if (move) {
+    this.consecutivePass = 0; 
+    this.putStone(move.row, move.col);
+  } else {
+    // パス処理
+    this.consecutivePass++;
+    if (this.consecutivePass >= 2) {
+      this.endGame();
+      return;
     }
-  }, 1000); 
+    console.log(this.consecutivePass);
+    this.switchPlayer();
+  }
 }
-
   /** 終局処理 */
   private endGame(): void {
     this.isGameOver = true;
@@ -171,6 +179,11 @@ private advanceIfCpuTurn(): void {
   /** 石色の反転ユーティリティ */
   private opposite(c: StoneColor): StoneColor {
     return c === StoneColor.BLACK ? StoneColor.WHITE : StoneColor.BLACK;
+  }
+
+  /** 待機後、resolve するユーティリティ */
+  private delay(ms: number): Promise<void> {
+    return new Promise(res => setTimeout(res, ms));
   }
 
   /* ==============================  Observer 通知  ============================== */
