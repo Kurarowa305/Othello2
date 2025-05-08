@@ -4,10 +4,10 @@ import { Position } from "../types/Position";
 
 export class BoardCanvas {
   public readonly element: HTMLDivElement;
-  public static readonly SIZE = 8;                     // 8×8 固定
-  private readonly cells: HTMLDivElement[][] = [];      // [row][col] ⇔ cell DOM
+  public static readonly SIZE = 8;
+  private readonly cells: HTMLDivElement[][] = [];
   private readonly onCellClick: (r: number, c: number) => void;
-  private readonly highlighted = new Set<string>();     // "row,col" 形式で管理
+  private readonly highlighted = new Set<string>();// "row,col" 形式で管理
 
   public constructor(onCellClick: (row: number, col: number) => void) {
     this.onCellClick = onCellClick;
@@ -37,12 +37,14 @@ export class BoardCanvas {
     }
   }
 
+
   private onClick = (ev: MouseEvent): void => {
     const cell = ev.currentTarget as HTMLDivElement;
     const r = Number(cell.dataset.row);
     const c = Number(cell.dataset.col);
     this.onCellClick(r, c);
   };
+
 
   public render(board: Board): void {
     for (let r = 0; r < BoardCanvas.SIZE; r++) {
@@ -64,6 +66,7 @@ export class BoardCanvas {
       }
     }
   }
+
 
   public highlight(valid: Position[]): void {
     /* 旧ハイライト解除 */

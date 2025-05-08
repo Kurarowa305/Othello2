@@ -5,6 +5,7 @@ export class EndGameDialog {
   private readonly whiteCountSpan: HTMLSpanElement;
   private readonly onRestart?: () => void;
 
+
   public constructor(onRestart?: () => void) {
     this.onRestart = onRestart;
 
@@ -57,10 +58,12 @@ export class EndGameDialog {
     this.element.appendChild(dialogBox);
   }
 
+
   private hide(): void {
     this.element.style.display = "none";
   }
 
+  
   public showResult(black: number, white: number): void {
     if (black === white) {
       this.messageSpan.textContent = "Draw";
