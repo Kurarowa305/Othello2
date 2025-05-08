@@ -6,6 +6,7 @@ export class GameInfoPanel {
   private readonly blacCountkSpan: HTMLSpanElement;
   private readonly whiteCountSpan: HTMLSpanElement;
 
+
   public constructor() {
     this.element = document.createElement("div");
     this.element.classList.add("game-info-panel");
@@ -48,6 +49,7 @@ export class GameInfoPanel {
     this.element.appendChild(countWrapper);
   }
 
+
   public showTurn(color: StoneColor): void {
     this.turnSpan.textContent = color === StoneColor.BLACK ? "Black" : "White";
 
@@ -55,6 +57,7 @@ export class GameInfoPanel {
     this.element.classList.toggle("white-turn", color === StoneColor.WHITE);
   }
 
+  
   public showCount(black: number, white: number): void {
     this.blacCountkSpan.textContent = String(black);
     this.whiteCountSpan.textContent = String(white);

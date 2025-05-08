@@ -1,13 +1,3 @@
-/* --------------------------------------------------
- * /src/model/OthelloGame.ts
- * --------------------------------------------------
- * ゲーム進行ロジックを一手に担う Model クラス。
- *  - 盤面状態の保持と更新
- *  - 手番管理／パス判定／終局判定
- *  - View への通知 (Observer パターン)
- *  - CPU 手の自動実行
- * -------------------------------------------------- */
-
 import { StoneColor } from "../types/StoneColor";
 import { Position } from "../types/Position";
 import { Board } from "./Board";
@@ -17,81 +7,74 @@ import { CpuPlayer } from "../controller/CpuPlayer";
 import { IGameObserver } from "./observer/IGameObserver";
 
 export class OthelloGame {
-  /* ==============================  フィールド  ============================== */
-  private board: Board = new Board();                // 現在の盤面
+  public static readonly CPU_PLAYER_DELAY = 1000; // CPU プレイヤーの待機時間（ミリ秒）
+  private board: Board = new Board();
   private readonly players: Record<StoneColor, IPlayer>;
-  public  currentPlayer: StoneColor;                 // 手番
-  public  isGameOver = false;                        // 終局フラグ
-  private consecutivePass = 0;                       // 連続パス回数
+  private currentPlayer: StoneColor; 
+  private isGameOver = false;  
+  private consecutivePass = 0; // 連続パス回数
   private readonly observers = new Set<IGameObserver>();
 
-  /* ==============================  初期化  ============================== */
 
   public constructor(playerBlack: IPlayer, playerWhite: IPlayer) {
-    // プレイヤー登録
     this.players = {
       [StoneColor.BLACK]: playerBlack,
       [StoneColor.WHITE]: playerWhite,
-      [StoneColor.EMPTY]: playerBlack, // ダミー (参照しない)
+      [StoneColor.EMPTY]: playerBlack, // ダミー
     };
 
-    // HumanPlayer にはゲームインスタンスをバインド
     [playerBlack, playerWhite].forEach(p => {
       if (p instanceof HumanPlayer) p.bindGame(this);
     });
 
-    this.currentPlayer = StoneColor.BLACK; // 先手固定
+    this.currentPlayer = StoneColor.BLACK; // 黒番先手
   }
 
-  /* ==============================  Public API  ============================== */
 
-  /** ゲームを開始する (盤面を初期化し通知) */
   public start(): void {
     this.resetInternalState();
     this.notifyBoardUpdated();
     this.notifyTurnChanged();
-    this.advanceIfCpuTurn(); // 先手が CPU の可能性に対応
+    this.advanceIfCpuTurn();
   }
 
-  /** ゲームをリセットして再開 */
+
   public restart(): void {
     this.start();
   }
 
-  /** 合法手の一覧を返す */
-  public getAllValidPlaces(color: StoneColor = this.currentPlayer): Position[] {
+
+  public addObserver(obs: IGameObserver): void {
+    this.observers.add(obs);
+  }
+
+
+  public getCurrentPlayer(): StoneColor {
+    return this.currentPlayer;
+  }
+
+
+  public getIsGameOver(): boolean {
+    return this.isGameOver;
+  }
+
+  
+  public getAllValidPlaces(): Position[] {
     const list: Position[] = [];
     for (let r = 0; r < Board.SIZE; r++) {
       for (let c = 0; c < Board.SIZE; c++) {
-        if (this.board.canPutStone(r, c, color)) list.push({ row: r, col: c });
+        if (this.board.canPutStone(r, c, this.currentPlayer)) list.push({ row: r, col: c });
       }
     }
     return list;
   }
 
-  /** 着手を確定させる (Human からも CPU からもここに集約) */
-  public putStone(row: number, col: number): void {
-    if (this.isGameOver) return;
-    if (!this.board.canPutStone(row, col, this.currentPlayer)) return;
 
-    // 石を置いて反転
-    this.board.applyMove(row, col, this.currentPlayer);
-    
-    // 手番交代 & 継続
-    this.switchPlayer();
-  }
-
-  /** 観測者を登録 */
-  public addObserver(obs: IGameObserver): void {
-    this.observers.add(obs);
-  }
-
-  /** 盤上の石数を返す (View 用ユーティリティ) */
-  public countStones(target: Board = this.board): { black: number; white: number } {
+  public countStones(board: Board): { black: number; white: number } {
     let black = 0, white = 0;
     for (let r = 0; r < Board.SIZE; r++) {
       for (let c = 0; c < Board.SIZE; c++) {
-        const cell = target.getCell(r, c);
+        const cell = board.getCell(r, c);
         if (cell === StoneColor.BLACK) black++;
         else if (cell === StoneColor.WHITE) white++;
       }
@@ -99,34 +82,29 @@ export class OthelloGame {
     return { black, white };
   }
 
-  /* ==============================  内部ロジック  ============================== */
+
+  public putStone(row: number, col: number): void {
+    if (this.isGameOver) return;
+    if (!this.board.canPutStone(row, col, this.currentPlayer)) return;
+
+    this.board.applyMove(row, col, this.currentPlayer);
+    this.consecutivePass = 0;
+    this.switchPlayer();
+  }
+
+
   private async switchPlayer(): Promise<void> {
     this.currentPlayer = this.opposite(this.currentPlayer);
 
-    /* ---------- 空きセルがあるかチェック ---------- */
-    const { black, white } = this.countStones();              
-    const totalStones = black + white;
-    if (totalStones >= Board.SIZE * Board.SIZE) {             
+    if (this.isBoardFull()) {             
       this.endGame();                                          
       return;
     }
-
-    /* ---------- 合法手チェック & パス処理 ---------- */
-    const valid = this.getAllValidPlaces();
-    if (valid.length === 0) {
-      // パス処理
-      this.consecutivePass++;
-      if (this.consecutivePass >= 2) {
-        this.endGame();
-        return;
-      }
-      console.log(this.consecutivePass);
-      await this.switchPlayer();
+    if (this.getAllValidPlaces().length === 0) {
+      this.pass()
       return;
     }
-    this.consecutivePass = 0;
   
-    // UI更新
     this.notifyTurnChanged();
     this.notifyBoardUpdated();
 
@@ -134,41 +112,45 @@ export class OthelloGame {
   }
   
 
-/** CPU の手番なら自動的に手を選び実行 */
-private async advanceIfCpuTurn(): Promise<void> {
-  if (this.isGameOver) return;
-  const player = this.players[this.currentPlayer];
-  if (!(player instanceof CpuPlayer)) return;
+  /** CPUのターン(chooseMove → putStone → switchPlayer) */
+  private async advanceIfCpuTurn(): Promise<void> {
+    if (this.isGameOver) return;
+    const player = this.players[this.currentPlayer];
+    if (!(player instanceof CpuPlayer)) return;
 
-  await this.delay(1000);   
+    await this.delay(OthelloGame.CPU_PLAYER_DELAY);   
 
-  if (this.isGameOver) {  
-    return;
-  }
-
-  /* ---------- 合法手チェック & パス処理 ---------- */
-  const move = player.chooseMove(this.board.clone());
-  if (move) {
-    this.consecutivePass = 0; 
-    this.putStone(move.row, move.col);
-  } else {
-    // パス処理
-    this.consecutivePass++;
-    if (this.consecutivePass >= 2) {
-      this.endGame();
+    if (this.isGameOver) {  
       return;
     }
-    console.log(this.consecutivePass);
-    this.switchPlayer();
+
+    const move = player.chooseMove(this.board.clone());
+    if (move) {
+      this.putStone(move.row, move.col);
+    } else {
+      this.pass();
+    }
   }
-}
-  /** 終局処理 */
+
+
+  private pass(): void {
+    this.consecutivePass++;
+      if (this.consecutivePass >= 2) {
+        this.endGame();
+        return;
+      }
+      // 仮実装（機能追加：UIにパス表示）
+      console.log(this.consecutivePass);
+      this.switchPlayer();
+  }
+
+
   private endGame(): void {
     this.isGameOver = true;
     this.notifyGameEnded();
   }
 
-  /** 内部状態のリセット (再開用) */
+
   private resetInternalState(): void {
     this.board = new Board();
     this.currentPlayer = StoneColor.BLACK;
@@ -176,26 +158,41 @@ private async advanceIfCpuTurn(): Promise<void> {
     this.consecutivePass = 0;
   }
 
-  /** 石色の反転ユーティリティ */
+
+  /* ============================================================
+   * ユーティリティ
+   * ============================================================ */
+
   private opposite(c: StoneColor): StoneColor {
     return c === StoneColor.BLACK ? StoneColor.WHITE : StoneColor.BLACK;
   }
 
-  /** 待機後、resolve するユーティリティ */
+
   private delay(ms: number): Promise<void> {
     return new Promise(res => setTimeout(res, ms));
   }
 
-  /* ==============================  Observer 通知  ============================== */
+
+  private isBoardFull(): boolean {
+    const { black, white } = this.countStones(this.board);
+    return black + white >= Board.SIZE * Board.SIZE;
+  }
+
+
+  /* ============================================================
+   * Observer 通知
+   * ============================================================ */
 
   private notifyBoardUpdated(): void {
     const snapshot = this.board.clone();
     this.observers.forEach(o => o.onBoardUpdated(snapshot));
   }
 
+
   private notifyTurnChanged(): void {
     this.observers.forEach(o => o.onTurnChanged(this.currentPlayer));
   }
+
 
   private notifyGameEnded(): void {
     const snapshot = this.board.clone();

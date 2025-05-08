@@ -12,13 +12,16 @@ export class GameView implements IGameObserver {
   private readonly boardCanvas: BoardCanvas;
   private readonly infoPanel: GameInfoPanel;
   private readonly endDialog: EndGameDialog;
-  private readonly controller: HumanPlayer;
+  private readonly controller1?: HumanPlayer | null;
+  private readonly controller2?: HumanPlayer | null;
   private readonly game: OthelloGame;
 
-  public constructor(root: HTMLElement, game: OthelloGame, controller: HumanPlayer) {
+
+  public constructor(root: HTMLElement, game: OthelloGame, controller1?: HumanPlayer, controller2?: HumanPlayer) {
     this.root = root;
     this.game = game;
-    this.controller = controller;
+    this.controller1 = controller1 ?? null;
+    this.controller2 = controller2 ?? null;
 
     this.root.classList.add("game-view");
 
@@ -30,17 +33,24 @@ export class GameView implements IGameObserver {
     this.root.appendChild(this.boardCanvas.element);
     this.root.appendChild(this.endDialog.element);
 
-    // Observer登録
     this.game.addObserver(this);
   }
 
+
   private handleCellClick = (row: number, col: number): void => {
-    this.controller.onCellClicked(row, col);
+    if (this.controller1 && this.game.getCurrentPlayer() === this.controller1.color) {
+      this.controller1.onCellClicked(row, col);
+    }
+    if (this.controller2 && this.game.getCurrentPlayer() === this.controller2.color) {
+      this.controller2.onCellClicked(row, col);
+    }
   };
 
+  
   private handleRestart = (): void => {
     this.game.restart();
   };
+
 
   /* ============================================================
    * IGameObserver 実装
@@ -50,13 +60,15 @@ export class GameView implements IGameObserver {
     const validMoves = this.game.getAllValidPlaces();
     this.boardCanvas.render(board);
     this.boardCanvas.highlight(validMoves);
-    const { black, white } = this.game.countStones(); 
+    const { black, white } = this.game.countStones(board); 
     this.infoPanel.showCount(black, white);
   }
+
 
   public onTurnChanged(current: StoneColor): void {
     this.infoPanel.showTurn(current);
   }
+
 
   public onGameEnded(board: Board): void {
     this.boardCanvas.render(board);
