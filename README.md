@@ -4,7 +4,7 @@
 
 ## 特徴
 
--   UIは`DomBoardView`、`InfoPanel`、`EndDialog`で構成されています。
+-   UIは`BoardCanvas`、`GameInfoPanel`、`EndGameDialog`で構成されています。
 -   ゲームロジックは`Board`、`OthelloGame`で実装されています。
 -   プレイヤーは`HumanPlayer`と`CpuPlayer`を選択できます。
 
@@ -17,9 +17,10 @@
 ## ファイル構成
 
 -   `index.html`: エントリーポイント
--   `src/app.ts`: メインロジック
--   `src/domain/`: ドメインオブジェクト
--   `src/ui/`: UIコンポーネント
+-   `src/main.ts`: アプリケーションのエントリーファイル
+-   `src/controller/`: プレイヤーや評価戦略などのコントローラ群
+-   `src/model/`: ボードやゲームなどのモデル群
+-   `src/view/`: UIコンポーネント
 
 ## 依存関係
 
