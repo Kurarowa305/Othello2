@@ -7,7 +7,6 @@ import { RandomEval } from "./eval/RandomEval";
 
 export class CpuPlayer implements IPlayer {
   public readonly color: StoneColor;
-  public static readonly BOARD_SIZE = 8;
   private readonly rng: () => number; // 乱数生成器
   private readonly strategy: IEvalStrategy | null; // 評価戦略
 
@@ -26,8 +25,8 @@ export class CpuPlayer implements IPlayer {
   public chooseMove(board: Board): Position | null {
     /* ---------- 合法手の列挙 ---------- */
     const validMoves: Position[] = [];
-    for (let r = 0; r < CpuPlayer.BOARD_SIZE; r++) {
-      for (let c = 0; c < CpuPlayer.BOARD_SIZE; c++) {
+    for (let r = 0; r < Board.SIZE; r++) {
+      for (let c = 0; c < Board.SIZE; c++) {
         if (board.canPutStone(r, c, this.color)) {
           validMoves.push({ row: r, col: c });
         }
