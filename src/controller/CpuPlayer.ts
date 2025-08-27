@@ -4,6 +4,7 @@ import { Board } from "../model/Board";
 import { IPlayer } from "./IPlayer";
 import { IEvalStrategy } from "./eval/IEvalStrategy";
 import { RandomEval } from "./eval/RandomEval";
+import { LearningEval } from "./eval/LearningEval";
 
 export class CpuPlayer implements IPlayer {
   public readonly color: StoneColor;
@@ -60,6 +61,23 @@ export class CpuPlayer implements IPlayer {
 
     // 同スコアは乱数で決定
     const pick = bestMoves[Math.floor(this.rng() * bestMoves.length)];
+
+    // 学習用に着手を保存
+    if (this.strategy instanceof LearningEval && pick) {
+      this.strategy.record(pick);  
+    }
+
     return pick;
+  }
+
+
+  public onGameEnd(winner: StoneColor): void {
+    if (!(this.strategy instanceof LearningEval)) return;
+
+    const reward =
+      winner === StoneColor.EMPTY ? 0 :
+      winner === this.color        ? +1 :
+                                    -1;
+    this.strategy.learn(reward);
   }
 }
