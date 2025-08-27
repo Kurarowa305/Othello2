@@ -83,13 +83,13 @@ export class OthelloGame {
   }
 
 
-  public putStone(row: number, col: number): void {
+  public async putStone(row: number, col: number): Promise<void> {
     if (this.isGameOver) return;
     if (!this.board.canPutStone(row, col, this.currentPlayer)) return;
 
     this.board.applyMove(row, col, this.currentPlayer);
     this.consecutivePass = 0;
-    this.switchPlayer();
+    await this.switchPlayer();
   }
 
 
@@ -101,7 +101,7 @@ export class OthelloGame {
       return;
     }
     if (this.getAllValidPlaces().length === 0) {
-      this.pass()
+      await this.pass();
       return;
     }
   
@@ -126,22 +126,22 @@ export class OthelloGame {
 
     const move = player.chooseMove(this.board.clone());
     if (move) {
-      this.putStone(move.row, move.col);
+      await this.putStone(move.row, move.col);
     } else {
-      this.pass();
+      await this.pass();
     }
   }
 
 
-  private pass(): void {
+  private async pass(): Promise<void> {
     this.consecutivePass++;
-      if (this.consecutivePass >= 2) {
-        this.endGame();
-        return;
-      }
-      // 仮実装（機能追加：UIにパス表示）
-      console.log(this.consecutivePass);
-      this.switchPlayer();
+    if (this.consecutivePass >= 2) {
+      this.endGame();
+      return;
+    }
+    // 仮実装（機能追加：UIにパス表示）
+    console.log(this.consecutivePass);
+    await this.switchPlayer();
   }
 
 
