@@ -7,7 +7,7 @@ import { CpuPlayer } from "../controller/CpuPlayer";
 import { IGameObserver } from "./observer/IGameObserver";
 
 export class OthelloGame {
-  public static readonly CPU_PLAYER_DELAY = 1000; // CPU プレイヤーの待機時間（ミリ秒）
+  public static CPU_PLAYER_DELAY = 1000; // CPU プレイヤーの待機時間（ミリ秒）
   private board: Board = new Board();
   private readonly players: Record<StoneColor, IPlayer>;
   private currentPlayer: StoneColor; 
@@ -148,6 +148,16 @@ export class OthelloGame {
   private endGame(): void {
     this.isGameOver = true;
     this.notifyGameEnded();
+
+    const { black, white } = this.countStones(this.board);
+    const winner =
+    black === white ? StoneColor.EMPTY :
+    black  >  white ? StoneColor.BLACK : StoneColor.WHITE;
+
+    Object.values(this.players).forEach(p => {
+      const maybeLearner = p as unknown as { onGameEnd?: (w: StoneColor) => void };
+      maybeLearner.onGameEnd?.(winner);
+    });
   }
 
 
