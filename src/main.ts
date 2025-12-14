@@ -3,6 +3,8 @@ import { OthelloGame }  from "./model/OthelloGame";
 import { HumanPlayer }  from "./controller/HumanPlayer";
 import { CpuPlayer }    from "./controller/CpuPlayer";
 import { GameView }     from "./view/GameView";
+import { RandomEval }   from "./controller/eval/RandomEval";
+import { defaultRandomGenerator } from "./controller/utils/RandomGenerator";
 
 
 function getAppRoot(): HTMLElement {
@@ -22,15 +24,27 @@ type PlayerPair = [HumanPlayer | CpuPlayer, HumanPlayer | CpuPlayer];
 const playerFactories: Record<string, () => PlayerPair> = {
   "human-vs-cpu": () => [
     new HumanPlayer(StoneColor.BLACK),
-    new CpuPlayer (StoneColor.WHITE, Math.random /*, IEvalStrategy*/),
+    new CpuPlayer (
+      StoneColor.WHITE,
+      defaultRandomGenerator,
+      new RandomEval(defaultRandomGenerator),
+    ),
   ],
   "human-vs-human": () => [
     new HumanPlayer(StoneColor.BLACK),
     new HumanPlayer(StoneColor.WHITE),
   ],
   "cpu-vs-cpu": () => [
-    new CpuPlayer (StoneColor.BLACK, Math.random /*, IEvalStrategy*/),
-    new CpuPlayer (StoneColor.WHITE, Math.random /*, IEvalStrategy*/),
+    new CpuPlayer (
+      StoneColor.BLACK,
+      defaultRandomGenerator,
+      new RandomEval(defaultRandomGenerator),
+    ),
+    new CpuPlayer (
+      StoneColor.WHITE,
+      defaultRandomGenerator,
+      new RandomEval(defaultRandomGenerator),
+    ),
   ],
 };
 
