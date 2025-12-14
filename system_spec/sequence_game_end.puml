@@ -1,0 +1,46 @@
+@startuml
+title ゲーム終了処理
+
+skinparam ParticipantBackgroundColor<<model>> Linen
+skinparam ParticipantBackgroundColor<<controller>> LightCyan
+skinparam ParticipantBackgroundColor<<view>> LightYellow
+skinparam ParticipantPadding 25
+
+participant "OthelloGame" as Game <<model>>
+participant "Board" as B <<model>>
+participant "GameView" as GV <<view>>
+participant "BoardCanvas" as BC <<view>>
+participant "EndGameDialog" as Dialog <<view>>
+
+opt 盤面が埋まった / 2連続パス / その他終了条件
+  note right Game #Snow
+    ref: Human/Cpuターン or switchPlayer フロー内で呼び出し
+  end note
+end
+
+Game -> Game: endGame()
+Game -> Game: isGameOver = true
+Game -> Game: notifyGameEnded()
+
+Game -> B: clone()
+activate B
+B --> Game: snapshot
+deactivate B
+Game -> GV: onGameEnded(snapshot)
+activate GV
+
+GV -> BC: render(board)
+activate BC
+deactivate BC
+GV -> Game: countStones(board)
+activate Game
+Game --> GV: black, white
+deactivate Game
+GV -> Dialog: showResult(black, white)
+activate Dialog
+deactivate Dialog
+
+GV --> Game: return
+deactivate GV
+
+@enduml

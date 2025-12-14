@@ -1,0 +1,109 @@
+@startuml
+title ゲーム開始
+
+skinparam ParticipantBackgroundColor<<model>> Linen
+skinparam ParticipantBackgroundColor<<controller>> LightCyan
+skinparam ParticipantBackgroundColor<<view>> LightYellow
+
+participant "Window" as Win
+participant "main.ts" as Main
+participant "OthelloGame" as Game <<model>>
+participant "Board" as B <<model>>
+participant "HumanPlayer" as HP <<controller>>
+participant "CpuPlayer" as CPU <<controller>>
+participant "GameView" as GV <<view>>
+participant "BoardCanvas" as BC <<view>>
+participant "GameInfoPanel" as Info <<view>>
+participant "EndGameDialog" as Dialog <<view>>
+
+activate Win
+Win -> Main: DOMContentLoaded
+deactivate Win
+activate Main
+Main -> Main: getAppRoot()
+Main -> Main: ゲームモード選択
+
+opt human-vs-cpu
+  Main -> HP: new HumanPlayer(BLACK)
+  activate HP
+  deactivate HP
+  Main -> CPU: new CpuPlayer(WHITE, rng, strategy?)
+  activate CPU
+  deactivate CPU
+end
+
+Main -> Game: new OthelloGame(blackPlayer, whitePlayer)
+activate Game
+Game -> HP: bindGame(OthelloGame)
+activate HP
+deactivate Game
+deactivate HP
+Main -> GV: new GameView(root, Game, humanControllers)
+activate GV
+GV -> BC: new BoardCanvas()
+activate BC
+deactivate BC
+GV -> Info: new GameInfoPanel()
+activate Info
+deactivate Info
+GV -> Dialog: new EndGameDialog()
+activate Dialog
+deactivate Dialog
+GV -> GV: root.appendChild(canvas, infoPanel, dialog)
+activate Game
+GV -> Game: addObserver(GameView)
+deactivate GV
+deactivate Game
+
+Main -> Game: start()
+deactivate Main
+activate Game
+
+Game -> Game: resetInternalState()
+Game -> B: new Board()
+activate B
+Game -> B: clone()
+B --> Game: snapshot
+deactivate B
+Game -> GV: onBoardUpdated(snapshot) 
+activate GV
+GV -> Game: getAllValidPlaces(),\ncountStones(board)
+Game --> GV: validMoves, black, white
+GV -> BC: render(board),\nhighlight(validMoves)
+activate BC
+deactivate BC
+GV -> Info: showCount(black, white)
+activate Info
+deactivate GV
+deactivate Info
+
+Game -> GV: onTurnChanged(currentPlayer=BLACK)
+activate GV
+GV -> Info: showTurn(current=BLACK)
+activate Info
+deactivate GV
+deactivate Info
+
+Game -> Game: advanceIfCpuTurn()
+alt 先手がCPU
+  Game -> Game: delay(CPU_PLAYER_DELAY)
+  Game -> B: clone()
+  activate B
+  B --> Game: snapshot
+  deactivate B
+  Game -> CPU: chooseMove(snapshot)
+  activate CPU
+  deactivate CPU
+    note left CPU #Snow
+      ref: ゲーム中（CpuPlayerのターン）フローへ
+    end note
+else 先手が人間
+  Game --> Win: 入力待ち
+  activate Win
+  note right Win #Snow
+      ref: ゲーム中（HumanPlayerのターン）フローへ
+    end note
+end
+
+@enduml
+
