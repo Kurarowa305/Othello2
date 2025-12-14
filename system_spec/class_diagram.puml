@@ -1,0 +1,164 @@
+@startuml
+title Othello (TypeScript/Vite) クラス図
+
+package "types" {
+  enum StoneColor {
+    BLACK
+    WHITE
+    EMPTY
+  }
+
+  class Position <<type>> {
+    +row: number
+    +col: number
+  }
+}
+
+package "model" {
+  class Board {
+    +{static} SIZE: number
+    -cells: StoneColor[][]
+    +canPutStone(r: number, c: number, current: StoneColor): boolean
+    +getReverseStones(r: number, c: number, current: StoneColor): Position[]
+    +applyMove(r: number, c: number, current: StoneColor): void
+    +getCell(r: number, c: number): StoneColor
+    +clone(): Board
+  }
+
+  interface IGameObserver {
+    +onBoardUpdated(board: Board): void
+    +onTurnChanged(current: StoneColor): void
+    +onGameEnded(board: Board): void
+  }
+
+  class OthelloGame {
+    +{static} CPU_PLAYER_DELAY: number
+    -board: Board
+    -players: Record<StoneColor, IPlayer>
+    -currentPlayer: StoneColor
+    -isGameOver: boolean
+    -consecutivePass: number
+    -observers: Set<IGameObserver>
+    +start(): void
+    +restart(): void
+    +addObserver(obs: IGameObserver): void
+    +getCurrentPlayer(): StoneColor
+    +getIsGameOver(): boolean
+    +getAllValidPlaces(): Position[]
+    +countStones(board: Board): { black: number; white: number }
+    +putStone(row: number, col: number): Promise<void>
+  }
+}
+
+package "controller" {
+  interface IPlayer {
+    +color: StoneColor
+    +chooseMove(board: Board): Position | null
+  }
+
+  class HumanPlayer {
+    +color: StoneColor
+    -game?: OthelloGame
+    +chooseMove(board: Board): Position | null
+    +bindGame(game: OthelloGame): void
+    +onCellClicked(row: number, col: number): void
+  }
+
+  class CpuPlayer {
+    +color: StoneColor
+    -rng: () => number
+    -strategy: IEvalStrategy
+    +chooseMove(board: Board): Position | null
+  }
+
+  package "eval" {
+    interface IEvalStrategy {
+      +evaluate(board: Board, color: StoneColor, move: Position): number
+    }
+
+    class RandomEval {
+      -rng: RandomGenerator
+      +evaluate(board: Board, color: StoneColor, move: Position): number
+    }
+  }
+
+  package "utils" {
+    class RandomGenerator <<type>> {
+      +(): number
+    }
+  }
+}
+
+package "view" {
+  class GameView {
+    -root: HTMLElement
+    -boardCanvas: BoardCanvas
+    -infoPanel: GameInfoPanel
+    -endDialog: EndGameDialog
+    -controller1?: HumanPlayer
+    -controller2?: HumanPlayer
+    -game: OthelloGame
+    +onBoardUpdated(board: Board): void
+    +onTurnChanged(current: StoneColor): void
+    +onGameEnded(board: Board): void
+  }
+
+  class BoardCanvas {
+    +element: HTMLDivElement
+    +render(board: Board): void
+    +highlight(valid: Position[]): void
+  }
+
+  class GameInfoPanel {
+    +element: HTMLDivElement
+    +showTurn(color: StoneColor): void
+    +showCount(black: number, white: number): void
+  }
+
+  class EndGameDialog {
+    +element: HTMLDivElement
+    +showResult(black: number, white: number): void
+  }
+}
+
+/' 継承・実装関係 '/
+HumanPlayer ..|> IPlayer
+CpuPlayer ..|> IPlayer
+RandomEval ..|> IEvalStrategy
+GameView ..|> IGameObserver
+
+/' 集約・合成・参照関係 '/
+OthelloGame *-- Board : board
+OthelloGame o--> "players" IPlayer
+OthelloGame --> "0..*" IGameObserver : observers
+OthelloGame --> StoneColor
+OthelloGame ..> Position
+
+Board ..> StoneColor
+Board ..> Position
+
+CpuPlayer ..> Board
+CpuPlayer ..> IEvalStrategy
+CpuPlayer ..> Position
+CpuPlayer ..> StoneColor
+
+HumanPlayer --> OthelloGame
+HumanPlayer ..> Board
+HumanPlayer ..> Position
+HumanPlayer ..> StoneColor
+
+RandomEval ..> RandomGenerator
+
+GameView --> OthelloGame
+GameView *-- BoardCanvas
+GameView *-- GameInfoPanel
+GameView *-- EndGameDialog
+GameView --> "0..2" HumanPlayer : controllers
+
+BoardCanvas ..> Board
+BoardCanvas ..> Position
+BoardCanvas ..> StoneColor
+
+GameInfoPanel ..> StoneColor
+@enduml
+

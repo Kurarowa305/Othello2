@@ -1,0 +1,97 @@
+@startuml
+title ゲーム開始
+
+skinparam ParticipantBackgroundColor<<model>> Linen
+skinparam ParticipantBackgroundColor<<controller>> LightCyan
+skinparam ParticipantBackgroundColor<<view>> LightYellow
+
+participant "Window" as Win
+participant "main.ts" as Main
+participant "OthelloGame" as Game <<model>>
+participant "Board" as B <<model>>
+participant "GameView" as GV <<view>>
+participant "BoardCanvas" as BC <<view>>
+participant "GameInfoPanel" as Info <<view>>
+
+activate Game
+Game -> Game: switchPlayer()
+Game -> Game: currentPlayer = opposite(currentPlayer)
+loop for each cell in board
+  Game -> B: getCell(row, col)
+  activate B
+  B --> Game: cell
+  deactivate B
+  Game -> Game: count up
+end
+opt Board full
+  Game -> Game: endGame()
+  note left Game #Snow
+    ref: ゲーム終了フローへ
+  end note
+end
+Game -> Game: getAllValidPlaces()
+loop for each cell in board
+  Game -> B: canPutStone(row, col, currentPlayer)
+  activate B
+  B --> Game: true / false
+  deactivate B
+end
+Game --> Game: nextMoves
+alt nextMoves が空
+  Game -> Game: pass()
+  group pass
+    Game -> Game: consecutivePass++
+    alt 2連続パス
+      Game -> Game: endGame()
+      note left Game #Snow
+        ref: ゲーム終了フローへ
+      end note
+    else 連続パス未満
+      note right Game #Snow
+        pass() 内部で switchPlayer() を再呼び出し
+      end note
+    end
+  end
+else 次プレイヤーが着手可能
+  Game -> GV: onTurnChanged(currentPlayer)
+  activate GV
+  GV -> Info: showTurn(currentPlayer)
+  activate Info
+  deactivate Info
+
+  Game -> GV: onBoardUpdated(board.clone())
+  GV -> Game: getAllValidPlaces()
+  activate Game
+  Game --> GV: validMoves
+  deactivate Game
+  GV -> BC: render(board)
+  activate BC
+  GV -> BC: highlight(validMoves)
+  deactivate BC
+  GV -> Game: countStones(board)
+  activate Game
+  Game --> GV: black, white
+  deactivate Game
+  GV -> Info: showCount(black, white)
+  activate Info
+  deactivate Info
+  deactivate GV
+
+  Game -> Game: advanceIfCpuTurn()
+  alt 次の手番がCPU
+    Game -> Game: delay(CPU_PLAYER_DELAY)
+    note right Game #Snow
+      ref: ゲーム中（CpuPlayerのターン）フローへ
+    end note
+  else 次の手番がHuman
+    Game --> Win: 入力待機
+    note right Win #Snow
+      ref: ゲーム中（Humanのターン）フローへ
+    end note
+  end
+end
+deactivate Game
+deactivate GV
+
+@enduml
+

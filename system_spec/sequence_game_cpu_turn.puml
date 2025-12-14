@@ -1,0 +1,102 @@
+@startuml
+title ゲーム中（CpuPlayerのターン）
+
+skinparam ParticipantBackgroundColor<<model>> Linen
+skinparam ParticipantBackgroundColor<<controller>> LightCyan
+skinparam ParticipantBackgroundColor<<view>> LightYellow
+skinparam ParticipantPadding 25
+
+participant "OthelloGame" as Game <<model>>
+participant "Board" as B <<model>>
+participant "CpuPlayer" as CPU <<controller>>
+participant "GameView" as GV <<view>>
+participant "BoardCanvas" as BC <<view>>
+participant "GameInfoPanel" as Info <<view>>
+
+Game -> Game: advanceIfCpuTurn()
+Game -> Game: ensure !isGameOver()
+opt isGameOver == true
+  Game --> Game: return
+end
+Game -> Game: player = players[currentPlayer]
+opt player is not CpuPlayer
+  Game --> Game: return
+end
+Game -> Game: delay(CPU_PLAYER_DELAY)
+Game -> Game: ensure !isGameOver()
+opt isGameOver == true
+  Game --> Game: return
+end
+
+Game -> B: clone()
+activate B
+B --> Game: snapshot
+deactivate B
+Game -> CPU: chooseMove(snapshot)
+activate CPU
+CPU --> Game: move | null
+deactivate CPU
+
+alt move != null
+  Game -> B: canPutStone(row, col, currentPlayer)
+  activate B
+  B --> Game: true / false
+  deactivate B
+  opt false
+    Game --> Game: return
+  end
+
+  Game -> B: applyMove(row, col, currentPlayer)
+  activate B
+  B -> B: getReverseStones(row, col, currentPlayer)
+  loop for each reverses
+    B -> B: cells[row][col] = currentPlayer
+  end
+  deactivate B
+  Game -> Game: consecutivePass = 0
+  Game -> Game: switchPlayer()
+
+  Game -> GV: onTurnChanged(currentPlayer)
+  activate GV
+  GV -> Info: showTurn(currentPlayer)
+  activate Info
+  deactivate Info
+
+  Game -> GV: onBoardUpdated(board.clone())
+  GV -> Game: getAllValidPlaces()
+  activate Game
+  Game --> GV: validMoves
+  deactivate Game
+  GV -> BC: render(board)
+  activate BC
+  GV -> BC: highlight(validMoves)
+  deactivate BC
+  GV -> Game: countStones(board)
+  activate Game
+  Game --> GV: black, white
+  deactivate Game
+  GV -> Info: showCount(black, white)
+  activate Info
+  deactivate Info
+  deactivate GV
+
+  note right Game #Snow
+    ref: ターン切り替えフローへ
+  end note
+
+else move == null (パス)
+  Game -> Game: pass()
+  Game -> Game: consecutivePass++
+  alt 2連続パス
+    Game -> Game: endGame()
+    note right Game #Snow
+      ref: ゲーム終了フローへ
+    end note
+  else パス継続
+    note right Game #Snow
+      pass() 内で switchPlayer() を再呼び出し
+    end note
+  end
+end
+
+@enduml

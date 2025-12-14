@@ -1,0 +1,113 @@
+@startuml
+title ゲーム中（HumanPlayerのターン）
+
+skinparam ParticipantBackgroundColor<<model>> Linen
+skinparam ParticipantBackgroundColor<<controller>> LightCyan
+skinparam ParticipantBackgroundColor<<view>> LightYellow
+skinparam ParticipantPadding 25
+
+participant "Window" as Win
+participant "BoardCanvas" as BC <<view>>
+participant "GameView" as GV <<view>>
+participant "GameInfoPanel" as Info <<view>>
+participant "HumanPlayer" as HP <<controller>>
+participant "OthelloGame" as Game <<model>>
+participant "Board" as B <<model>>
+
+Win -> BC: onClick(row, col)
+activate BC
+BC -> GV: handleCellClick(row, col)
+deactivate BC
+activate GV
+
+alt HumanPlayerの手番
+  GV -> HP: onCellClicked(row, col)
+  activate HP
+else CPUの手番
+  GV --> Win: return
+end
+
+HP -> Game: getIsGameOver()
+activate Game
+Game --> HP: isGameOver
+deactivate Game
+opt isGameOver == true  
+  HP --> GV: return
+end
+
+HP -> Game: getCurrentPlayer()
+activate Game
+Game --> HP: currentPlayer
+deactivate Game
+opt currentPlayer != HP.color
+  HP --> GV: return
+end
+
+HP -> Game: getAllValidPlaces()
+activate Game
+loop for each cell in board
+  Game -> B: canPutStone(row, col, currentPlayer)
+  activate B
+  B --> Game: true / false
+  deactivate B
+end
+Game --> HP: validMoves
+deactivate Game
+HP -> HP: contains(row, col)?
+opt no contain
+  HP --> GV: return
+end
+deactivate GV
+
+HP -> Game: putStone(row, col)
+activate Game
+Game -> Game: ensure !isGameOver()
+opt isGameOver == true
+  Game --> HP: return
+end 
+Game -> B: canPutStone(row, col, currentPlayer)
+activate B
+B --> Game: true / false
+deactivate B
+opt false
+  Game --> HP: return
+end
+deactivate HP
+
+Game -> B: applyMove(row, col, currentPlayer)
+activate B
+B -> B: getReverseStones(row, col, currentPlayer)
+loop for each reverses
+B -> B: cells[row][col] = currentPlayer
+end
+deactivate B
+Game -> Game: consecutivePass = 0
+Game -> Game: switchPlayer()
+Game -> GV: onTurnChanged(currentPlayer)
+activate GV
+GV -> Info: showTurn(currentPlayer)
+activate Info
+deactivate Info
+
+Game -> GV: onBoardUpdated(board.clone())
+GV -> Game: getAllValidPlaces()
+activate Game
+Game --> GV: validMoves
+deactivate Game
+GV -> BC: render(board)
+activate BC
+GV -> BC: highlight(validMoves)
+deactivate BC
+GV -> Game: countStones(board)
+activate Game
+Game --> GV: black, white
+deactivate Game
+GV -> Info: showCount(black, white)
+activate Info
+deactivate Info
+deactivate GV
+note right Game #Snow
+  ref: ターン切り替えフローへ
+end note
+
+@enduml
